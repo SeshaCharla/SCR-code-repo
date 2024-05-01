@@ -1,6 +1,9 @@
 import numpy as np
 from pandas import read_csv
 from scipy.io import loadmat
+import pickle as pkl
+import pathlib as pth
+
 
 # Data names for the truck and test data ---------------------------------------
 # [0][j] - Degreened data
@@ -9,6 +12,7 @@ truck = [["adt_15", "mes_15", "wer_15", "trw_15"],
          ["adt_17", "mes_18", "wer_17", "trw_16"]]
 test = [["dg_cftp", "dg_hftp", "dg_rmc"],
         ["aged_cftp", "aged_hftp", "aged_rmc"]]
+name_dict = {"truck": truck, "test": test}
 data_dir = "../../Data"
 test_dir = data_dir + "/test_cell_data"
 truck_dir = data_dir + "/drive_data"
@@ -40,6 +44,7 @@ class data:
         self.T = None
         self.F = None
         self.Medians = None
+        self.Means = None
 
         # Get the right data name and root directory
         if tt == "truck":
@@ -50,6 +55,13 @@ class data:
             self.load_test_data()
         else:
             raise(ValueError("Invalid data type"))
+
+        # Pickle the data to files
+        pkl_file = pth.Path("./pkl_files/" + self.name + ".pkl")
+        pkl_file.parent.mkdir(parents=True, exist_ok=True)
+        with pkl_file.open("wb") as f:
+            pkl.dump(self, f)
+
 
     def load_test_data(self):
         # Load the test data
@@ -74,6 +86,14 @@ class data:
                         'T':np.median(self.T[~np.isnan(self.T)]),
                         'F':np.median(self.F[~np.isnan(self.F)]),
                         'y1':np.median(self.y1[~np.isnan(self.y1)])}
+        self.Means = {'x1':np.mean(self.x1[~np.isnan(self.x1)]),
+                      'x2':np.mean(self.x2[~np.isnan(self.x2)]),
+                      'u1':np.mean(self.u1[~np.isnan(self.u1)]),
+                      'u2':np.mean(self.u2[~np.isnan(self.u2)]),
+                      'T':np.mean(self.T[~np.isnan(self.T)]),
+                      'F':np.mean(self.F[~np.isnan(self.F)]),
+                      'y1':np.mean(self.y1[~np.isnan(self.y1)])}
+
 
     def load_truck_data(self):
         # Load the truck data
@@ -91,19 +111,32 @@ class data:
                         'T':np.median(self.T[~np.isnan(self.T)]),
                         'F':np.median(self.F[~np.isnan(self.F)]),
                         'y1':np.median(self.y1[~np.isnan(self.y1)])}
+        self.Means = {'u1':np.mean(self.u1[~np.isnan(self.u1)]),
+                      'u2':np.mean(self.u2[~np.isnan(self.u2)]),
+                      'T':np.mean(self.T[~np.isnan(self.T)]),
+                      'F':np.mean(self.F[~np.isnan(self.F)]),
+                      'y1':np.mean(self.y1[~np.isnan(self.y1)])}
 
 #-------------------------------------------------------------------------------
 
 # Functions to load the data sets ----------------------------------------------
 
+def load_data(tt, age, num):
+    # Load the data
+    try:
+        with open('./pkl_files/' + name_dict[tt][age][num] + '.pkl', 'rb') as f:
+            return pkl.load(f)
+    except(FileNotFoundError):
+            return data(tt, age, num)
+
 def load_test_data_set():
     # Load the test data
-    return [[data("test", age, tst) for tst in range(3)] for age in range(2)]
+    return [[load_data("test", age, tst) for tst in range(3)] for age in range(2)]
 
 
 def load_truck_data_set():
     # Load the truck data
-    return [[data("truck", age, tst) for tst in range(4)] for age in range(2)]
+    return [[load_data("truck", age, tst) for tst in range(4)] for age in range(2)]
 
 #-------------------------------------------------------------------------------
 
@@ -115,13 +148,23 @@ if __name__=="__main__":
 
     # Getting the medians of all the data points
     test_medians = {'x1':[], 'x2':[], 'u1':[], 'u2':[], 'F':[], 'T':[], 'y1':[]}
+    test_means = {'x1':[], 'x2':[], 'u1':[], 'u2':[], 'F':[], 'T':[], 'y1':[]}
     for i in range(2):
         for j in range(3):
             for key in test_medians:
                 test_medians[key].append(test_data[i][j].Medians[key])
+                test_means[key].append(test_data[i][j].Means[key])
+    for key in test_medians:
+        test_medians[key] = np.array(test_medians[key]).flatten()
+        test_means[key] = np.array(test_means[key]).flatten()
 
     truck_medians = {'u1':[], 'u2':[], 'F':[], 'T':[], 'y1':[]}
+    truck_means = {'u1':[], 'u2':[], 'F':[], 'T':[], 'y1':[]}
     for i in range(2):
         for j in range(4):
             for key in truck_medians:
                 truck_medians[key].append(truck_data[i][j].Medians[key])
+                truck_means[key].append(truck_data[i][j].Means[key])
+    for key in truck_medians:
+        truck_medians[key] = np.array(truck_medians[key]).flatten()
+        truck_means[key] = np.array(truck_means[key]).flatten()
