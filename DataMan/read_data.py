@@ -1,8 +1,7 @@
 import numpy as np
 from pandas import read_csv
 from scipy.io import loadmat
-import pickle as pkl
-import pathlib as pth
+# import pathlib as pth
 
 
 # Data names for the truck and test data ---------------------------------------
@@ -34,7 +33,7 @@ gsec2kgmin_gain = 1/16.6667
 
 
 # Class to load the data -------------------------------------------------------
-class data:
+class data(object):
     def __init__(self, tt, age, num):
         # Variables
         self.x1 = None
@@ -57,10 +56,10 @@ class data:
             raise(ValueError("Invalid data type"))
 
         # Pickle the data to files
-        pkl_file = pth.Path("./pkl_files/" + self.name + ".pkl")
-        pkl_file.parent.mkdir(parents=True, exist_ok=True)
-        with pkl_file.open("wb") as f:
-            pkl.dump(self, f)
+        # pkl_file = pth.Path("./pkl_files/" + self.name + ".pkl")
+        # pkl_file.parent.mkdir(parents=True, exist_ok=True)
+        # with pkl_file.open("wb") as f:
+            # pkl.dump(self, f)
 
 
     def load_test_data(self):
@@ -117,17 +116,14 @@ class data:
                       'F':np.mean(self.F[~np.isnan(self.F)]),
                       'y1':np.mean(self.y1[~np.isnan(self.y1)])}
 
+
 #-------------------------------------------------------------------------------
 
 # Functions to load the data sets ----------------------------------------------
 
 def load_data(tt, age, num):
     # Load the data
-    try:
-        with open('./pkl_files/' + name_dict[tt][age][num] + '.pkl', 'rb') as f:
-            return pkl.load(f)
-    except(FileNotFoundError):
-            return data(tt, age, num)
+    return data(tt, age, num)
 
 def load_test_data_set():
     # Load the test data
@@ -138,11 +134,13 @@ def load_truck_data_set():
     # Load the truck data
     return [[load_data("truck", age, tst) for tst in range(4)] for age in range(2)]
 
+
+
 #-------------------------------------------------------------------------------
 
-
 if __name__=="__main__":
-    # Load data
+
+    # Acutaly load the entire data set -----------------------------------------
     test_data = load_test_data_set()
     truck_data = load_truck_data_set()
 
