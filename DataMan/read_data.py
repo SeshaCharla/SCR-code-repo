@@ -26,6 +26,7 @@ test_dict = {"aged_cftp":"g580040_Aged_cFTP.csv",
              "dg_cftp"  :"g577670_DG_cFTP.csv",
              "dg_hftp"  :"g577671_DG_hFTP.csv",
              "dg_rmc"   :"g577673_DG_RMC.csv"}
+gsec2kgmin_gain = 1/16.6667
 
 
 # Class to load the data -------------------------------------------------------
@@ -38,6 +39,7 @@ class data:
         self.y1 = None
         self.T = None
         self.F = None
+        self.Medians = None
 
         # Get the right data name and root directory
         if tt == "truck":
@@ -64,7 +66,14 @@ class data:
         self.y1 = np.array(data.get(('V_SCM_PPM_SCR_OUT_NOX', 'ppm'))).flatten()
         self.u1 = np.array(data.get(('ENG_CW_NOX_FTIR_COR_U2', 'PPM'))).flatten()
         self.u2 = np.array(data.get(('V_UIM_FLM_ESTUREAINJRATE', 'ml/sec'))).flatten()
-        self.u1_sensor = np.array(data.get(('EONOX_COMP_VALUE', 'ppm'))).flatten()
+        # self.u1_sensor = np.array(data.get(('EONOX_COMP_VALUE', 'ppm'))).flatten()
+        self.Medians = {'x1':np.median(self.x1[~np.isnan(self.x1)]),
+                        'x2':np.median(self.x2[~np.isnan(self.x2)]),
+                        'u1':np.median(self.u1[~np.isnan(self.u1)]),
+                        'u2':np.median(self.u2[~np.isnan(self.u2)]),
+                        'T':np.median(self.T[~np.isnan(self.T)]),
+                        'F':np.median(self.F[~np.isnan(self.F)]),
+                        'y1':np.median(self.y1[~np.isnan(self.y1)])}
 
     def load_truck_data(self):
         # Load the truck data
@@ -72,11 +81,16 @@ class data:
         data = loadmat(file_name)
         # Assigning the data to the variables
         self.t = np.array(data['tod']).flatten()
-        self.F = np.array(data['pExhMF']).flatten()
+        self.F = np.array(data['pExhMF']).flatten() * gsec2kgmin_gain
         self.T = np.array(data['pSCRBedTemp']).flatten()
         self.u2 = np.array(data['pUreaDosing']).flatten()
         self.u1 = np.array(data['pNOxInppm']).flatten()
         self.y1 = np.array(data['pNOxOutppm']).flatten()
+        self.Medians = {'u1':np.median(self.u1[~np.isnan(self.u1)]),
+                        'u2':np.median(self.u2[~np.isnan(self.u2)]),
+                        'T':np.median(self.T[~np.isnan(self.T)]),
+                        'F':np.median(self.F[~np.isnan(self.F)]),
+                        'y1':np.median(self.y1[~np.isnan(self.y1)])}
 
 #-------------------------------------------------------------------------------
 
@@ -95,4 +109,19 @@ def load_truck_data_set():
 
 
 if __name__=="__main__":
-    import matplotlib.pyplot as plt
+    # Load data
+    test_data = load_test_data_set()
+    truck_data = load_truck_data_set()
+
+    # Getting the medians of all the data points
+    test_medians = {'x1':[], 'x2':[], 'u1':[], 'u2':[], 'F':[], 'T':[], 'y1':[]}
+    for i in range(2):
+        for j in range(3):
+            for key in test_medians:
+                test_medians[key].append(test_data[i][j].Medians[key])
+
+    truck_medians = {'u1':[], 'u2':[], 'F':[], 'T':[], 'y1':[]}
+    for i in range(2):
+        for j in range(4):
+            for key in truck_medians:
+                truck_medians[key].append(truck_data[i][j].Medians[key])
