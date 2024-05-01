@@ -1,7 +1,8 @@
 import numpy as np
 from pandas import read_csv
 from scipy.io import loadmat
-# import pathlib as pth
+import pathlib as pth
+import pickle as pkl
 
 
 # Data names for the truck and test data ---------------------------------------
@@ -48,18 +49,48 @@ class data(object):
         # Get the right data name and root directory
         if tt == "truck":
             self.name = truck[age][num]
-            self.load_truck_data()
+            try:
+                self.load_pickle()
+            except FileNotFoundError:
+                self.load_truck_data()
         elif tt == "test":
             self.name = test[age][num]
-            self.load_test_data()
+            try:
+                self.load_pickle()
+            except FileNotFoundError:
+                self.load_test_data()
         else:
             raise(ValueError("Invalid data type"))
 
-        # Pickle the data to files
-        # pkl_file = pth.Path("./pkl_files/" + self.name + ".pkl")
-        # pkl_file.parent.mkdir(parents=True, exist_ok=True)
-        # with pkl_file.open("wb") as f:
-            # pkl.dump(self, f)
+
+    def pickle_data(self):
+        # Create a dictionary of the data
+        data_dict = {"x1":self.x1, "x2":self.x2, "t":self.t , 'u1':self.u1,
+                     'u2':self.u2, "y1":self.y1, "T":self.T, "F":self.F,
+                     "Medians":self.Medians, "Means":self.Means}
+        # Pickle the data_dict to files
+        pkl_file = pth.Path("./pkl_files/" + self.name + ".pkl")
+        pkl_file.parent.mkdir(parents=True, exist_ok=True)
+        with pkl_file.open("wb") as f:
+            pkl.dump(data_dict, f)
+
+
+    def load_pickle(self):
+        # Load the pickled data
+        pkl_file = pth.Path("./pkl_files/" + self.name + ".pkl")
+        with pkl_file.open("rb") as f:
+            data_dict = pkl.load(f)
+        # Assign the data to the variables
+        self.x1 = data_dict["x1"]
+        self.x2 = data_dict["x2"]
+        self.t = data_dict["t"]
+        self.u1 = data_dict["u1"]
+        self.u2 = data_dict["u2"]
+        self.y1 = data_dict["y1"]
+        self.T = data_dict["T"]
+        self.F = data_dict["F"]
+        self.Medians = data_dict["Medians"]
+        self.Means = data_dict["Means"]
 
 
     def load_test_data(self):
@@ -92,6 +123,7 @@ class data(object):
                       'T':np.mean(self.T[~np.isnan(self.T)]),
                       'F':np.mean(self.F[~np.isnan(self.F)]),
                       'y1':np.mean(self.y1[~np.isnan(self.y1)])}
+        self.pickle_data()
 
 
     def load_truck_data(self):
@@ -115,24 +147,21 @@ class data(object):
                       'T':np.mean(self.T[~np.isnan(self.T)]),
                       'F':np.mean(self.F[~np.isnan(self.F)]),
                       'y1':np.mean(self.y1[~np.isnan(self.y1)])}
+        self.pickle_data()
 
 
 #-------------------------------------------------------------------------------
 
 # Functions to load the data sets ----------------------------------------------
 
-def load_data(tt, age, num):
-    # Load the data
-    return data(tt, age, num)
-
 def load_test_data_set():
     # Load the test data
-    return [[load_data("test", age, tst) for tst in range(3)] for age in range(2)]
+    return [[data("test", age, tst) for tst in range(3)] for age in range(2)]
 
 
 def load_truck_data_set():
     # Load the truck data
-    return [[load_data("truck", age, tst) for tst in range(4)] for age in range(2)]
+    return [[data("truck", age, tst) for tst in range(4)] for age in range(2)]
 
 
 
