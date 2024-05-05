@@ -30,21 +30,19 @@ test_dict = {"aged_cftp":"g580040_Aged_cFTP.csv",
              "dg_cftp"  :"g577670_DG_cFTP.csv",
              "dg_hftp"  :"g577671_DG_hFTP.csv",
              "dg_rmc"   :"g577673_DG_RMC.csv"}
-gsec2kgmin_gain = 1/16.6667
+gsec2kgmin_gain = 1/16.6667   # Conversion factor from g/sec to kg/min
 
 
 # Class to load the data -------------------------------------------------------
 class data(object):
     def __init__(self, tt, age, num):
         # Variables
-        self.x1 = None
-        self.x2 = None
-        self.t = None
-        self.y1 = None
-        self.T = None
-        self.F = None
-        self.Medians = None
-        self.Means = None
+        self.raw = {'t':None, 'x1':None, 'x2':None,
+                    'u1':None, 'u2':None, 'T':None, 'F':None, 'y1':None}
+        self.ssd = {'t':None, 'x1':None, 'x2':None,
+                    'u1':None, 'u2':None, 'T':None, 'F':None}
+        self.iod = {'t':None, 'y1':None,
+                    'u1':None, 'u2':None, 'T':None, 'F':None}
 
         # Get the right data name and root directory
         if tt == "truck":
@@ -62,12 +60,48 @@ class data(object):
         else:
             raise(ValueError("Invalid data type"))
 
+    def gen_ssd(self):
+        # Generate the state space data
+        rmNaNrows = lambda x: np.delete(x, [i for i in range(len(x))
+                                            if np.any(np.isnan(x[i]))],
+                                                                axis=0)
+        ssd_tab = rmNaNrows(np.matrix([self.raw['t'],
+                                       self.raw['x1'], self.raw['x2'],
+                                       self.raw['u1'], self.raw['u2'],
+                                       self.raw['T'],  self.raw['F']]).T)
+        ssd_mat = ssd_tab.T
+        self.ssd['t'] = np.array(ssd_mat[0]).flatten()
+        self.ssd['x1'] = np.array(ssd_mat[1]).flatten()
+        self.ssd['x2'] = np.array(ssd_mat[2]).flatten()
+        self.ssd['u1'] = np.array(ssd_mat[3]).flatten()
+        self.ssd['u2'] = np.array(ssd_mat[4]).flatten()
+        self.ssd['T'] = np.array(ssd_mat[5]).flatten()
+        self.ssd['F'] = np.array(ssd_mat[6]).flatten()
+
+
+    def gen_iod(self):
+        # Generate the input output data
+        rmNaNrows = lambda x: np.delete(x, [i for i in range(len(x))
+                                            if np.any(np.isnan(x[i]))],
+                                                                axis=0)
+        iod_tab = rmNaNrows(np.matrix([self.raw['t'],
+                                       self.raw['y1'],
+                                       self.raw['u1'], self.raw['u2'],
+                                       self.raw['T'],  self.raw['F']]).T)
+        if self.name == "mes_18": # Special case for mes_18
+            iod_tab = np.copy(iod_tab[247:])
+        iod_mat = iod_tab.T
+        self.iod['t'] = np.array(iod_mat[0]).flatten()
+        self.iod['y1'] = np.array(iod_mat[1]).flatten()
+        self.iod['u1'] = np.array(iod_mat[2]).flatten()
+        self.iod['u2'] = np.array(iod_mat[3]).flatten()
+        self.iod['T'] = np.array(iod_mat[4]).flatten()
+        self.iod['F'] = np.array(iod_mat[5]).flatten()
+
 
     def pickle_data(self):
         # Create a dictionary of the data
-        data_dict = {"x1":self.x1, "x2":self.x2, "t":self.t , 'u1':self.u1,
-                     'u2':self.u2, "y1":self.y1, "T":self.T, "F":self.F,
-                     "Medians":self.Medians, "Means":self.Means}
+        data_dict = {'ssd':self.ssd, 'iod':self.iod, 'raw':self.raw}
         # Pickle the data_dict to files
         pkl_file = pth.Path("./pkl_files/" + self.name + ".pkl")
         pkl_file.parent.mkdir(parents=True, exist_ok=True)
@@ -81,16 +115,9 @@ class data(object):
         with pkl_file.open("rb") as f:
             data_dict = pkl.load(f)
         # Assign the data to the variables
-        self.x1 = data_dict["x1"]
-        self.x2 = data_dict["x2"]
-        self.t = data_dict["t"]
-        self.u1 = data_dict["u1"]
-        self.u2 = data_dict["u2"]
-        self.y1 = data_dict["y1"]
-        self.T = data_dict["T"]
-        self.F = data_dict["F"]
-        self.Medians = data_dict["Medians"]
-        self.Means = data_dict["Means"]
+        self.ssd = data_dict['ssd']
+        self.iod = data_dict['iod']
+        self.raw = data_dict['raw']
 
 
     def load_test_data(self):
@@ -98,31 +125,19 @@ class data(object):
         file_name = test_dir + "/" + test_dict[self.name]
         data = read_csv(file_name, header=[0,1])
         # Assigning the data to the variables
-        self.t = np.array(data.get(('LOG_TM', 'sec'))).flatten()
-        self.F = np.array(data.get(('EXHAUST_FLOW', 'kg/min'))).flatten()
+        self.raw['t'] = np.array(data.get(('LOG_TM', 'sec'))).flatten()
+        self.raw['F'] = np.array(data.get(('EXHAUST_FLOW', 'kg/min'))).flatten()
         Tin = np.array(data.get(('V_AIM_TRC_DPF_OUT', 'Deg_C'))).flatten()
         Tout = np.array(data.get(('V_AIM_TRC_SCR_OUT', 'Deg_C'))).flatten()
-        self.T = np.mean([Tin, Tout], axis=0).flatten()
-        self.x1 = np.array(data.get(('EXH_CW_NOX_COR_U1', 'PPM'))).flatten()
-        self.x2 = np.array(data.get(('EXH_CW_AMMONIA_MEA', 'ppm'))).flatten()
-        self.y1 = np.array(data.get(('V_SCM_PPM_SCR_OUT_NOX', 'ppm'))).flatten()
-        self.u1 = np.array(data.get(('ENG_CW_NOX_FTIR_COR_U2', 'PPM'))).flatten()
-        self.u2 = np.array(data.get(('V_UIM_FLM_ESTUREAINJRATE', 'ml/sec'))).flatten()
-        # self.u1_sensor = np.array(data.get(('EONOX_COMP_VALUE', 'ppm'))).flatten()
-        self.Medians = {'x1':np.median(self.x1[~np.isnan(self.x1)]),
-                        'x2':np.median(self.x2[~np.isnan(self.x2)]),
-                        'u1':np.median(self.u1[~np.isnan(self.u1)]),
-                        'u2':np.median(self.u2[~np.isnan(self.u2)]),
-                        'T':np.median(self.T[~np.isnan(self.T)]),
-                        'F':np.median(self.F[~np.isnan(self.F)]),
-                        'y1':np.median(self.y1[~np.isnan(self.y1)])}
-        self.Means = {'x1':np.mean(self.x1[~np.isnan(self.x1)]),
-                      'x2':np.mean(self.x2[~np.isnan(self.x2)]),
-                      'u1':np.mean(self.u1[~np.isnan(self.u1)]),
-                      'u2':np.mean(self.u2[~np.isnan(self.u2)]),
-                      'T':np.mean(self.T[~np.isnan(self.T)]),
-                      'F':np.mean(self.F[~np.isnan(self.F)]),
-                      'y1':np.mean(self.y1[~np.isnan(self.y1)])}
+        self.raw['T'] = np.mean([Tin, Tout], axis=0).flatten()
+        self.raw['x1'] = np.array(data.get(('EXH_CW_NOX_COR_U1', 'PPM'))).flatten()
+        self.raw['x2'] = np.array(data.get(('EXH_CW_AMMONIA_MEA', 'ppm'))).flatten()
+        self.raw['y1'] = np.array(data.get(('V_SCM_PPM_SCR_OUT_NOX', 'ppm'))).flatten()
+        self.raw['u1'] = np.array(data.get(('ENG_CW_NOX_FTIR_COR_U2', 'PPM'))).flatten()
+        self.raw['u2'] = np.array(data.get(('V_UIM_FLM_ESTUREAINJRATE', 'ml/sec'))).flatten()
+        # u1_sensor = np.array(data.get(('EONOX_COMP_VALUE', 'ppm'))).flatten()
+        self.gen_ssd()
+        self.gen_iod()
         self.pickle_data()
 
 
@@ -131,22 +146,13 @@ class data(object):
         file_name = truck_dir + "/" + truck_dict[self.name]
         data = loadmat(file_name)
         # Assigning the data to the variables
-        self.t = np.array(data['tod']).flatten()
-        self.F = np.array(data['pExhMF']).flatten() * gsec2kgmin_gain
-        self.T = np.array(data['pSCRBedTemp']).flatten()
-        self.u2 = np.array(data['pUreaDosing']).flatten()
-        self.u1 = np.array(data['pNOxInppm']).flatten()
-        self.y1 = np.array(data['pNOxOutppm']).flatten()
-        self.Medians = {'u1':np.median(self.u1[~np.isnan(self.u1)]),
-                        'u2':np.median(self.u2[~np.isnan(self.u2)]),
-                        'T':np.median(self.T[~np.isnan(self.T)]),
-                        'F':np.median(self.F[~np.isnan(self.F)]),
-                        'y1':np.median(self.y1[~np.isnan(self.y1)])}
-        self.Means = {'u1':np.mean(self.u1[~np.isnan(self.u1)]),
-                      'u2':np.mean(self.u2[~np.isnan(self.u2)]),
-                      'T':np.mean(self.T[~np.isnan(self.T)]),
-                      'F':np.mean(self.F[~np.isnan(self.F)]),
-                      'y1':np.mean(self.y1[~np.isnan(self.y1)])}
+        self.raw['t'] = np.array(data['tod']).flatten()
+        self.raw['F'] = np.array(data['pExhMF']).flatten() * gsec2kgmin_gain
+        self.raw['T'] = np.array(data['pSCRBedTemp']).flatten()
+        self.raw['u2'] = np.array(data['pUreaDosing']).flatten()
+        self.raw['u1'] = np.array(data['pNOxInppm']).flatten()
+        self.raw['y1'] = np.array(data['pNOxOutppm']).flatten()
+        self.gen_iod()
         self.pickle_data()
 
 
@@ -173,25 +179,68 @@ if __name__=="__main__":
     test_data = load_test_data_set()
     truck_data = load_truck_data_set()
 
-    # Getting the medians of all the data points
-    test_medians = {'x1':[], 'x2':[], 'u1':[], 'u2':[], 'F':[], 'T':[], 'y1':[]}
-    test_means = {'x1':[], 'x2':[], 'u1':[], 'u2':[], 'F':[], 'T':[], 'y1':[]}
+    # Plotting all the data sets
+    import matplotlib.pyplot as plt
+
     for i in range(2):
         for j in range(3):
-            for key in test_medians:
-                test_medians[key].append(test_data[i][j].Medians[key])
-                test_means[key].append(test_data[i][j].Means[key])
-    for key in test_medians:
-        test_medians[key] = np.array(test_medians[key]).flatten()
-        test_means[key] = np.array(test_means[key]).flatten()
+            for key in ['u1', 'u2', 'T', 'F', 'x1', 'x2']:
+                plt.figure()
+                plt.plot(test_data[i][j].ssd['t'], test_data[i][j].ssd[key], label=test_data[i][j].name + " " + key)
+                plt.grid()
+                plt.legend()
+                plt.xlabel('Time [s]')
+                plt.ylabel(key)
+                plt.title(test_data[i][j].name)
+                plt.savefig("figs/" + test_data[i][j].name + "_" + key + ".png")
+                plt.close()
+            for key in ['u1', 'u2', 'T', 'F', 'y1']:
+                plt.figure()
+                plt.plot(test_data[i][j].iod['t'], test_data[i][j].iod[key], label=test_data[i][j].name + " " + key)
+                plt.grid()
+                plt.legend()
+                plt.xlabel('Time [s]')
+                plt.ylabel(key)
+                plt.title(test_data[i][j].name)
+                plt.savefig("figs/" + test_data[i][j].name + "_" + key + ".png")
+                plt.close()
 
-    truck_medians = {'u1':[], 'u2':[], 'F':[], 'T':[], 'y1':[]}
-    truck_means = {'u1':[], 'u2':[], 'F':[], 'T':[], 'y1':[]}
     for i in range(2):
         for j in range(4):
-            for key in truck_medians:
-                truck_medians[key].append(truck_data[i][j].Medians[key])
-                truck_means[key].append(truck_data[i][j].Means[key])
-    for key in truck_medians:
-        truck_medians[key] = np.array(truck_medians[key]).flatten()
-        truck_means[key] = np.array(truck_means[key]).flatten()
+            for key in ['u1', 'u2', 'T', 'F', 'y1']:
+                plt.figure()
+                plt.plot(truck_data[i][j].raw['t'], truck_data[i][j].raw[key], label=truck_data[i][j].name + " " + key)
+                plt.grid()
+                plt.legend()
+                plt.xlabel('Time [s]')
+                plt.ylabel(key)
+                plt.title(truck_data[i][j].name)
+                plt.savefig("figs/" + truck_data[i][j].name + "_" + key + ".png")
+                plt.close()
+
+    # Showing datat discontinuities --------------------------------------------
+    plt.figure()
+    for i in range(2):
+        for j in range(3):
+            t = test_data[i][j].ssd['t']
+            plt.plot(np.arange(len(t)), t, label=test_data[i][j].name + 'ss')
+            t = test_data[i][j].iod['t']
+            plt.plot(np.arange(len(t)), t, label=test_data[i][j].name + 'io')
+    plt.grid()
+    plt.legend()
+    plt.xlabel('Index')
+    plt.ylabel('Time [s]')
+    plt.title('Time discontinuities in test data')
+    plt.savefig("figs/time_discontinuities_test.png")
+
+    plt.figure()
+    for i in range(2):
+        for j in range(4):
+            t = truck_data[i][j].iod['t']
+            plt.plot(np.arange(len(t)), t, label=truck_data[i][j].name)
+    plt.grid()
+    plt.legend()
+    plt.xlabel('Index')
+    plt.ylabel('Time [s]')
+    plt.title('Time discontinuities in truck data')
+    plt.savefig("figs/time_discontinuities_truck.png")
