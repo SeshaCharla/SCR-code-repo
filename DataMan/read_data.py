@@ -232,6 +232,7 @@ if __name__=="__main__":
     plt.ylabel('Time [s]')
     plt.title('Time discontinuities in test data')
     plt.savefig("figs/time_discontinuities_test.png")
+    plt.close()
 
     plt.figure()
     for i in range(2):
@@ -244,3 +245,4 @@ if __name__=="__main__":
     plt.ylabel('Time [s]')
     plt.title('Time discontinuities in truck data')
     plt.savefig("figs/time_discontinuities_truck.png")
+    plt.close()
