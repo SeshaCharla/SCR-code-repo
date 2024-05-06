@@ -125,16 +125,24 @@ class data(object):
         file_name = test_dir + "/" + test_dict[self.name]
         data = read_csv(file_name, header=[0,1])
         # Assigning the data to the variables
-        self.raw['t'] = np.array(data.get(('LOG_TM', 'sec'))).flatten()
-        self.raw['F'] = np.array(data.get(('EXHAUST_FLOW', 'kg/min'))).flatten()
-        Tin = np.array(data.get(('V_AIM_TRC_DPF_OUT', 'Deg_C'))).flatten()
-        Tout = np.array(data.get(('V_AIM_TRC_SCR_OUT', 'Deg_C'))).flatten()
+        self.raw['t'] = np.array(data.get(('LOG_TM', 'sec')),
+                                 dtype=np.float64).flatten()
+        self.raw['F'] = np.array(data.get(('EXHAUST_FLOW', 'kg/min')),
+                                 dtype=np.float64).flatten()
+        Tin = np.array(data.get(('V_AIM_TRC_DPF_OUT', 'Deg_C')),
+                       dtype=np.float64).flatten()
+        Tout = np.array(data.get(('V_AIM_TRC_SCR_OUT', 'Deg_C')),
+                        dtype=np.float64).flatten()
         self.raw['T'] = np.mean([Tin, Tout], axis=0).flatten()
-        self.raw['x1'] = np.array(data.get(('EXH_CW_NOX_COR_U1', 'PPM'))).flatten()
-        self.raw['x2'] = np.array(data.get(('EXH_CW_AMMONIA_MEA', 'ppm'))).flatten()
-        self.raw['y1'] = np.array(data.get(('V_SCM_PPM_SCR_OUT_NOX', 'ppm'))).flatten()
-        self.raw['u1'] = np.array(data.get(('ENG_CW_NOX_FTIR_COR_U2', 'PPM'))).flatten()
-        self.raw['u2'] = np.array(data.get(('V_UIM_FLM_ESTUREAINJRATE', 'ml/sec'))).flatten()
+        self.raw['x1'] = np.array(data.get(('EXH_CW_NOX_COR_U1', 'PPM')),
+                                  dtype=np.float64).flatten()
+        self.raw['x2'] = np.array(data.get(('EXH_CW_AMMONIA_MEA', 'ppm')),
+                                  dtype=np.float64).flatten()
+        self.raw['y1'] = np.array(data.get(('V_SCM_PPM_SCR_OUT_NOX', 'ppm')),
+                                  dtype=np.float64).flatten()
+        self.raw['u1'] = np.array(data.get(('ENG_CW_NOX_FTIR_COR_U2', 'PPM')),
+                                  dtype=np.float64).flatten()
+        self.raw['u2'] = np.array(data.get(('V_UIM_FLM_ESTUREAINJRATE', 'ml/sec')), dtype=np.float64).flatten()
         # u1_sensor = np.array(data.get(('EONOX_COMP_VALUE', 'ppm'))).flatten()
         self.gen_ssd()
         self.gen_iod()
@@ -153,35 +161,76 @@ class data(object):
         self.raw['u1'] = np.array(data['pNOxInppm']).flatten()
         self.raw['y1'] = np.array(data['pNOxOutppm']).flatten()
         self.gen_iod()
+        self.ssd = None
         self.pickle_data()
 
 
+    def normalize(self, nom):
+        ## Normalize the ssd and iod datas
+        if self.ssd != None:
+            for key in ['x1', 'x2', 'u1', 'u2', 'T', 'F']:
+                self.ssd[key] = (self.ssd[key] - nom[key])/nom[key]
+        for key in ['y1', 'u1', 'u2', 'T', 'F']:
+            self.iod[key] = (self.iod[key] - nom[key])/nom[key]
+
+
+# The normalization values -----------------------------------------------------
+# Using RMC data to get the nominal values
+# The RMC data is on an average close to the truck data even though the truck
+# data has more frequent spikes
+dg_rmc = data("test", 0, 2)
+ag_rmc = data("test", 1, 2)
+nom = {'x1': np.mean([np.median(dg_rmc.ssd['x1']),
+                     np.median(ag_rmc.ssd['x1'])]),
+      'x2': np.mean([np.median(dg_rmc.ssd['x2']),
+                     np.median(ag_rmc.ssd['x2'])]),
+      'u1': np.mean([np.median(dg_rmc.ssd['u1']),
+                     np.median(ag_rmc.ssd['u1'])]),
+      'u2': np.mean([np.median(dg_rmc.ssd['u2']),
+                     np.median(ag_rmc.ssd['u2'])]),
+      'F': np.mean([np.median(dg_rmc.ssd['F']),
+                    np.median(ag_rmc.ssd['F'])]),
+      'T': np.mean([np.median(dg_rmc.ssd['T']),
+                    np.median(ag_rmc.ssd['T'])]),
+      'y1': np.mean([np.median(dg_rmc.ssd['x1']),
+                     np.median(ag_rmc.ssd['x1'])])}
 #-------------------------------------------------------------------------------
 
 # Functions to load the data sets ----------------------------------------------
 
-def load_test_data_set():
+def load_test_data_set(normalize=False):
     # Load the test data
-    return [[data("test", age, tst) for tst in range(3)] for age in range(2)]
+    test_data = [[data("test", age, tst) for tst in range(3)] for age in range(2)]
+    if normalize:
+        for i in range(2):
+            for j in range(3):
+                test_data[i][j].normalize(nom)
+    return test_data
 
 
-def load_truck_data_set():
+def load_truck_data_set(normalize=False):
     # Load the truck data
-    return [[data("truck", age, tst) for tst in range(4)] for age in range(2)]
-
+    truck_data = [[data("truck", age, tst) for tst in range(4)] for age in range(2)]
+    if normalize:
+        for i in range(2):
+            for j in range(4):
+                truck_data[i][j].normalize(nom)
+    return truck_data
 
 
 #-------------------------------------------------------------------------------
 
+
 if __name__=="__main__":
 
-    # Acutaly load the entire data set -----------------------------------------
-    test_data = load_test_data_set()
-    truck_data = load_truck_data_set()
-
-    # Plotting all the data sets
     import matplotlib.pyplot as plt
 
+    # Acutaly load the entire data set -----------------------------------------
+    normalization = True
+    test_data = load_test_data_set(normalize=normalization)
+    truck_data = load_truck_data_set(normalize=normalization)
+
+    # Plotting all the data sets
     for i in range(2):
         for j in range(3):
             for key in ['u1', 'u2', 'T', 'F', 'x1', 'x2']:
