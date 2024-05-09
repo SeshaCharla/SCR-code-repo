@@ -48,12 +48,14 @@ class data(object):
         # Get the right data name and root directory
         if tt == "truck":
             self.name = truck[age][num]
+            self.dt = 1
             try:
                 self.load_pickle()
             except FileNotFoundError:
                 self.load_truck_data()
         elif tt == "test":
             self.name = test[age][num]
+            self.dt = 0.2
             try:
                 self.load_pickle()
             except FileNotFoundError:
