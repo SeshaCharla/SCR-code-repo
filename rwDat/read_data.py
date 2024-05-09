@@ -3,7 +3,6 @@ from pandas import read_csv
 from scipy.io import loadmat
 import pathlib as pth
 import pickle as pkl
-import scipy.signal as sig
 
 
 # Data names for the truck and test data ---------------------------------------
