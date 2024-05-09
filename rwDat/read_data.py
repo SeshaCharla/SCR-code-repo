@@ -43,7 +43,7 @@ class data(object):
                     'u1':None, 'u2':None, 'T':None, 'F':None}
         self.iod = {'t':None, 'y1':None,
                     'u1':None, 'u2':None, 'T':None, 'F':None}
-        self.norm_flag = False
+        self.normalized = False
         self.norm = None
 
         # Get the right data name and root directory
@@ -171,13 +171,13 @@ class data(object):
 
     def normalize(self, nom):
         """Normalize the ssd and iod datas"""
-        if ~self.norm_flag:
+        if not self.normalized:
             if self.ssd != None:
                 for key in ['x1', 'x2', 'u1', 'u2', 'T', 'F']:
                     self.ssd[key] = (self.ssd[key] - nom[key])/nom[key]
             for key in ['y1', 'u1', 'u2', 'T', 'F']:
                 self.iod[key] = (self.iod[key] - nom[key])/nom[key]
-            self.norm_flag = True
+            self.normalized = True
             self.norm = nom
         else:
             print("Data already normalized about {}".format(self.norm))
@@ -189,20 +189,28 @@ class data(object):
 # data has more frequent spikes
 dg_rmc = data("test", 0, 2)
 ag_rmc = data("test", 1, 2)
-nom = {'x1': np.mean([np.median(dg_rmc.ssd['x1']),
+nom = {'x1': np.round(np.mean([np.median(dg_rmc.ssd['x1']),
                      np.median(ag_rmc.ssd['x1'])]),
-      'x2': np.mean([np.median(dg_rmc.ssd['x2']),
+                     2),
+      'x2': np.round(np.mean([np.median(dg_rmc.ssd['x2']),
                      np.median(ag_rmc.ssd['x2'])]),
-      'u1': np.mean([np.median(dg_rmc.ssd['u1']),
+                     2),
+      'u1': np.round(np.mean([np.median(dg_rmc.ssd['u1']),
                      np.median(ag_rmc.ssd['u1'])]),
-      'u2': np.mean([np.median(dg_rmc.ssd['u2']),
+                     2),
+      'u2': np.round(np.mean([np.median(dg_rmc.ssd['u2']),
                      np.median(ag_rmc.ssd['u2'])]),
-      'F': np.mean([np.median(dg_rmc.ssd['F']),
+                     2),
+      'F': np.round(np.mean([np.median(dg_rmc.ssd['F']),
                     np.median(ag_rmc.ssd['F'])]),
-      'T': np.mean([np.median(dg_rmc.ssd['T']),
+                    2),
+      'T': np.round(np.mean([np.median(dg_rmc.ssd['T']),
                     np.median(ag_rmc.ssd['T'])]),
-      'y1': np.mean([np.median(dg_rmc.ssd['x1']),
-                     np.median(ag_rmc.ssd['x1'])])}
+                    2),
+      'y1': np.round(np.mean([np.median(dg_rmc.ssd['x1']),
+                    np.median(ag_rmc.ssd['x1'])]),
+                    2)
+    }
 #-------------------------------------------------------------------------------
 
 # Functions to load the data sets ----------------------------------------------
