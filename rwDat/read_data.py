@@ -3,6 +3,7 @@ from pandas import read_csv
 from scipy.io import loadmat
 import pathlib as pth
 import pickle as pkl
+import scipy.signal as sig
 
 
 # Data names for the truck and test data ---------------------------------------
@@ -43,6 +44,7 @@ class data(object):
                     'u1':None, 'u2':None, 'T':None, 'F':None}
         self.iod = {'t':None, 'y1':None,
                     'u1':None, 'u2':None, 'T':None, 'F':None}
+        self.norm_flag = False
 
         # Get the right data name and root directory
         if tt == "truck":
@@ -166,12 +168,14 @@ class data(object):
 
 
     def normalize(self, nom):
-        ## Normalize the ssd and iod datas
-        if self.ssd != None:
-            for key in ['x1', 'x2', 'u1', 'u2', 'T', 'F']:
-                self.ssd[key] = (self.ssd[key] - nom[key])/nom[key]
-        for key in ['y1', 'u1', 'u2', 'T', 'F']:
-            self.iod[key] = (self.iod[key] - nom[key])/nom[key]
+        """Normalize the ssd and iod datas"""
+        if ~self.norm_flag:
+            if self.ssd != None:
+                for key in ['x1', 'x2', 'u1', 'u2', 'T', 'F']:
+                    self.ssd[key] = (self.ssd[key] - nom[key])/nom[key]
+            for key in ['y1', 'u1', 'u2', 'T', 'F']:
+                self.iod[key] = (self.iod[key] - nom[key])/nom[key]
+            self.norm_flag = True
 
 
 # The normalization values -----------------------------------------------------
