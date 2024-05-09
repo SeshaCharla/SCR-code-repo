@@ -44,6 +44,7 @@ class data(object):
         self.iod = {'t':None, 'y1':None,
                     'u1':None, 'u2':None, 'T':None, 'F':None}
         self.norm_flag = False
+        self.norm = None
 
         # Get the right data name and root directory
         if tt == "truck":
@@ -177,6 +178,9 @@ class data(object):
             for key in ['y1', 'u1', 'u2', 'T', 'F']:
                 self.iod[key] = (self.iod[key] - nom[key])/nom[key]
             self.norm_flag = True
+            self.norm = nom
+        else:
+            print("Data already normalized about {}".format(self.norm))
 
 
 # The normalization values -----------------------------------------------------
