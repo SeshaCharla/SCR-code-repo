@@ -17,7 +17,8 @@ b = sig.butter(10, 0.01, 'low', fs = 1, output='sos')
 for i in range(2):
     for j in range(4):
         plt.figure()
-        plt.scatter(truck_data[i][j].iod['t'], sig.sosfiltfilt(b, truck_data[i][j].iod['u1']), label=truck_data[i][j].name, marker='.')
+#        plt.scatter(truck_data[i][j].iod['t'], sig.sosfiltfilt(b, truck_data[i][j].iod['u1']), label=truck_data[i][j].name, marker='.')
+        plt.plot(truck_data[i][j].iod['t'], truck_data[i][j].iod['u1'], label=truck_data[i][j].name)
         plt.legend()
         plt.grid()
         plt.xlabel('Time [s]')

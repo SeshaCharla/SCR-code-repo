@@ -243,7 +243,7 @@ if __name__=="__main__":
     import matplotlib.pyplot as plt
 
     # Acutaly load the entire data set -----------------------------------------
-    normalization = True
+    normalization = False
     test_data = load_test_data_set(normalize=normalization)
     truck_data = load_truck_data_set(normalize=normalization)
 
@@ -259,7 +259,7 @@ if __name__=="__main__":
                 plt.ylabel(key)
                 plt.title(test_data[i][j].name)
                 plt.savefig("figs/" + test_data[i][j].name + "_" + key + ".png")
-                plt.close()
+                # plt.close()
             for key in ['u1', 'u2', 'T', 'F', 'y1']:
                 plt.figure()
                 plt.plot(test_data[i][j].iod['t'], test_data[i][j].iod[key], label=test_data[i][j].name + " " + key)
@@ -269,7 +269,7 @@ if __name__=="__main__":
                 plt.ylabel(key)
                 plt.title(test_data[i][j].name)
                 plt.savefig("figs/" + test_data[i][j].name + "_" + key + ".png")
-                plt.close()
+                # plt.close()
 
     for i in range(2):
         for j in range(4):
@@ -282,7 +282,7 @@ if __name__=="__main__":
                 plt.ylabel(key)
                 plt.title(truck_data[i][j].name)
                 plt.savefig("figs/" + truck_data[i][j].name + "_" + key + ".png")
-                plt.close()
+                # plt.close()
 
     # Showing datat discontinuities --------------------------------------------
     plt.figure()
@@ -298,7 +298,7 @@ if __name__=="__main__":
     plt.ylabel('Time [s]')
     plt.title('Time discontinuities in test data')
     plt.savefig("figs/time_discontinuities_test.png")
-    plt.close()
+    # plt.close()
 
     plt.figure()
     for i in range(2):
