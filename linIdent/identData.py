@@ -17,6 +17,7 @@ def sliced_derivatives(rrd:dict, nd:int=4,
     Returns a dictionary with the derivatives
     """
     tsk = rrd['t_skips']
+    N = len(rrd['t'])
     keys = list(rrd.keys())[1:6]
     dkeys = ['d' + key for key in keys]
     for key in dkeys:  # Creating zero matrices for the derivatives
@@ -26,6 +27,7 @@ def sliced_derivatives(rrd:dict, nd:int=4,
         return sig.savgol_filter(x, window_length=window_len,
                                  polyorder=poly_ord, deriv=n, delta=delta_t)
     for (key, dkey) in zip(keys, dkeys):    # Selecting a state
+        print(key, dkey)
         for j in range(nd+1):               # Selecting a derivative order
             for i in range(len(tsk)-1):     # Selecting a time slice
                 if tsk[i+1] - tsk[i] > window_len:
@@ -33,6 +35,7 @@ def sliced_derivatives(rrd:dict, nd:int=4,
                                                 rrd[key][tsk[i]:tsk[i+1]], j)
                 else:
                     raise ValueError("Window length is too samll run delSmallWindows() first")
+        print(rrd[dkey])
     return rrd
 
 
@@ -56,11 +59,12 @@ class IdData(rd.Data):
         if not (self.ssd is None):
             print('ssd')
             self.ssd = sliced_derivatives(self.ssd, nd=4,
-                                          poly_ord=7, window_len=21,
+                                          poly_ord=self.poly_ord, window_len=self.window_len,
                                           delta_t=self.dt)
         print('iod')
         self.iod = sliced_derivatives(self.iod, nd=4,
-                                      poly_ord=7, window_len=21,
+                                      poly_ord=self.poly_ord,
+                                      window_len=self.window_len,
                                       delta_t=self.dt)
 
 
@@ -84,5 +88,7 @@ def load_truck_iddata():
 
 if __name__ == "__main__":
 
+    import matplotlib.pyplot as plt
+
     test_data = load_test_iddata()
-    truck_data = load_truck_iddata()
+    # truck_data = load_truck_iddata()
