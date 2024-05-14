@@ -4,12 +4,12 @@ import matplotlib.pyplot as plt
 import scipy.signal as sig
 
 
-# Acutaly load the entire data set -----------------------------------------
+# Acutaly load the entire Data set -----------------------------------------
 test_data = rd.load_test_data_set(normalize=True)
 truck_data = rd.load_truck_data_set(normalize=True)
 
 b = sig.butter(10, 0.01, 'low', fs = 1, output='sos')
-# Plotting u1 form all the data sets
+# Plotting u1 form all the Data sets
 # for i in range(2):
 #     for j in range(3):
 #         plt.figure()
