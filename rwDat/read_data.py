@@ -79,8 +79,10 @@ class Data(object):
         self.ssd['T'] = np.array(ssd_mat[5]).flatten()
         self.ssd['F'] = np.array(ssd_mat[6]).flatten()
         # Find the time discontinuities in SSD Data
-        self.ssd['t_skips'] = [i for i in range(1, len(self.ssd['t'])) if
-                               self.ssd['t'][i] - self.ssd['t'][i - 1] > 1.5 * self.dt]
+        self.ssd['t_skips'] = np.array([i for i in range(1, len(self.ssd['t']))
+                                        if self.ssd['t'][i] - self.ssd['t'][i - 1] > 1.5 * self.dt], dtype=int)
+        self.ssd['t_skips'] = np.append(self.ssd['t_skips'], len(self.ssd['t']))
+        self.ssd['t_skips'] = np.insert(self.ssd['t_skips'], 0, 0)
 
     def gen_iod(self):
         # Generate the input output Data
@@ -101,8 +103,10 @@ class Data(object):
         self.iod['T'] = np.array(iod_mat[4]).flatten()
         self.iod['F'] = np.array(iod_mat[5]).flatten()
         # Find the time discontinuities in IOD Data
-        self.iod['t_skips'] = [i for i in range(1, len(self.iod['t'])) if
-                               self.iod['t'][i] - self.iod['t'][i - 1] > 1.5 * self.dt]
+        self.iod['t_skips'] = np.array([i for i in range(1, len(self.iod['t']))
+                                        if self.iod['t'][i] - self.iod['t'][i - 1] > 1.5 * self.dt], dtype=int)
+        self.iod['t_skips'] = np.append(self.iod['t_skips'], len(self.iod['t']))
+        self.iod['t_skips'] = np.insert(self.iod['t_skips'], 0, 0)
 
     def pickle_data(self):
         # Create a dictionary of the Data
