@@ -51,17 +51,23 @@ class IdData(rd.Data):
 
     def delSmallWindows(self):
         """ Remove the data which is not continuous to the window length """
+        ssd_tab = np.matrix([self.ssd['t'], self.ssd['x1'], self.ssd['x2'],
+                             self.ssd['u1'], self.ssd['u2'],
+                             self.ssd['F'], self.ssd['T'],
+                             self.ssd['t_skips']]).T
+        iod_tab = np.matrix([self.iod['t'], self.iod['y1'],
+                             self.iod['u1'], self.iod['u2'],
+                             self.iod['F'], self.iod['T'],
+                             self.iod['t_skips']]).T
         pass
 
     def gen_sliced_derivatives(self):
         """ Generate the sliced derivative matrices """
         print(self.name)
         if not (self.ssd is None):
-            print('ssd')
             self.ssd = sliced_derivatives(self.ssd, nd=4,
                                           poly_ord=self.poly_ord, window_len=self.window_len,
                                           delta_t=self.dt)
-        print('iod')
         self.iod = sliced_derivatives(self.iod, nd=4,
                                       poly_ord=self.poly_ord,
                                       window_len=self.window_len,

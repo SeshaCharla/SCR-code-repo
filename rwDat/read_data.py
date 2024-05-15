@@ -32,6 +32,24 @@ test_dict = {"aged_cftp": "g580040_Aged_cFTP.csv",
 gsec2kgmin_gain = 1 / 16.6667  # Conversion factor from g/sec to kg/min
 
 
+# Manipulating functions ------------------------------------------------------
+
+def find_discontinuities(t, dt):
+    """Find the discontinuities in the time Data
+    The slices would be: [0, t_skips[0]], [t_skips[0], t_skips[1]], ...
+    """
+    t_skips = np.array([i for i in range(1, len(t))
+                     if t[i] - t[i - 1] > 1.5 * dt], dtype=int)
+    t_skips = np.append(t_skips, len(t))
+    t_skips = np.insert(t_skips, 0, 0)
+    return t_skips
+
+def rmNaNrows(x):
+    """Remove the rows with NaN values"""
+    return np.delete(x, [i for i in range(len(x))
+                         if np.any(np.isnan(x[i]))], axis=0)
+
+
 # Class to load the Data -------------------------------------------------------
 class Data(object):
     def __init__(self, tt, age, num):
@@ -63,9 +81,6 @@ class Data(object):
 
     def gen_ssd(self):
         # Generate the state space Data
-        rmNaNrows = lambda x: np.delete(x, [i for i in range(len(x))
-                                            if np.any(np.isnan(x[i]))],
-                                        axis=0)
         ssd_tab = rmNaNrows(np.matrix([self.raw['t'],
                                        self.raw['x1'], self.raw['x2'],
                                        self.raw['u1'], self.raw['u2'],
@@ -79,16 +94,10 @@ class Data(object):
         self.ssd['T'] = np.array(ssd_mat[5]).flatten()
         self.ssd['F'] = np.array(ssd_mat[6]).flatten()
         # Find the time discontinuities in SSD Data
-        self.ssd['t_skips'] = np.array([i for i in range(1, len(self.ssd['t']))
-                                        if self.ssd['t'][i] - self.ssd['t'][i - 1] > 1.5 * self.dt], dtype=int)
-        self.ssd['t_skips'] = np.append(self.ssd['t_skips'], len(self.ssd['t']))
-        self.ssd['t_skips'] = np.insert(self.ssd['t_skips'], 0, 0)
+        self.ssd['t_skips'] = find_discontinuities(self.ssd['t'], self.dt)
 
     def gen_iod(self):
         # Generate the input output Data
-        rmNaNrows = lambda x: np.delete(x, [i for i in range(len(x))
-                                            if np.any(np.isnan(x[i]))],
-                                        axis=0)
         iod_tab = rmNaNrows(np.matrix([self.raw['t'],
                                        self.raw['y1'],
                                        self.raw['u1'], self.raw['u2'],
@@ -103,10 +112,7 @@ class Data(object):
         self.iod['T'] = np.array(iod_mat[4]).flatten()
         self.iod['F'] = np.array(iod_mat[5]).flatten()
         # Find the time discontinuities in IOD Data
-        self.iod['t_skips'] = np.array([i for i in range(1, len(self.iod['t']))
-                                        if self.iod['t'][i] - self.iod['t'][i - 1] > 1.5 * self.dt], dtype=int)
-        self.iod['t_skips'] = np.append(self.iod['t_skips'], len(self.iod['t']))
-        self.iod['t_skips'] = np.insert(self.iod['t_skips'], 0, 0)
+        self.iod['t_skips'] = find_discontinuities(self.iod['t'], self.dt)
 
     def pickle_data(self):
         # Create a dictionary of the Data
