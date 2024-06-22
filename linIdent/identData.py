@@ -8,8 +8,8 @@ import scipy.signal as sig
 
 # Manipulating functions ------------------------------------------------------
 
-def sliced_derivatives(rrd:dict, nd:int=4,
-                       poly_ord:int=7, window_len:int=21, delta_t:float=0.2):
+def sliced_derivatives(rrd:dict, nd:int,
+                       poly_ord:int, window_len:int, delta_t:float):
     """
     Calculate the derivatives of the Data
     Data: dictionary with the data
@@ -20,18 +20,21 @@ def sliced_derivatives(rrd:dict, nd:int=4,
     """
     tsk = rrd['t_skips']
     N = len(rrd['t'])
-    keys = list(rrd.keys())[1:6]
+    if len(rrd.keys()) == 7: # If data is IOD
+        keys = ['y1', 'u1', 'u2', 'T', 'F']
+    elif len(rrd.keys()) == 8: # If data is SSD
+        keys = ['x1', 'x2', 'u1', 'u2', 'T', 'F']
     dkeys = ['d' + key for key in keys]
     for key in dkeys:  # Creating zero matrices for the derivatives
         rrd[key] = np.zeros([nd+1, N])
     # Savitzky-Golay FIR filter
     def sg_diff(x, n):
         return sig.savgol_filter(x, window_length=window_len,
-                                 polyorder=poly_ord, deriv=n, delta=delta_t)
+                                 polyorder=poly_ord, deriv=n, delta=delta_t,
+                                 mode='nearest')
     for (key, dkey) in zip(keys, dkeys):    # Selecting a state
         for j in range(nd+1):               # Selecting a derivative order
             for i in range(len(tsk)-1):     # Selecting a time slice
-                print(i, tsk[i+1]-tsk[i])
                 if tsk[i+1] - tsk[i] > window_len:
                     rrd[dkey][j, tsk[i]:tsk[i+1]] = sg_diff(
                                                 rrd[key][tsk[i]:tsk[i+1]], j)
@@ -57,14 +60,13 @@ def delSmallWindows(tab, tsk, window_len):
 
     continue_flag = True
     while continue_flag:
-        print(tsk)
         tab, tsk, continue_flag = delFirstSmallWindow(tab, tsk, window_len)
     return tab, tsk
 
 
 class IdData(rd.Data):
     """Class for creating the identification data"""
-    def __init__(self, tt, age, num, window_len=21, poly_ord=7):
+    def __init__(self, tt, age, num, window_len=77, poly_ord=7):
         super().__init__(tt, age, num)
         self.normalize(rd.nom)
         self.window_len = window_len
@@ -107,7 +109,6 @@ class IdData(rd.Data):
 
     def gen_sliced_derivatives(self):
         """ Generate the sliced derivative matrices """
-        print(self.name)
         if not (self.ssd is None):
             self.ssd = sliced_derivatives(self.ssd, nd=4,
                                           poly_ord=self.poly_ord, window_len=self.window_len,
@@ -140,5 +141,41 @@ if __name__ == "__main__":
 
     import matplotlib.pyplot as plt
 
-    # test_data = load_test_iddata()
+    test_data = load_test_iddata()
     truck_data = load_truck_iddata()
+
+    # Plotting the the derivatives
+    dkeys_ssd = ['dx1', 'dx2', 'du1', 'du2', 'dF', 'dT']
+    dkeys_iod = ['dy1', 'du1', 'du2', 'dF', 'dT']
+    for age in test_data:
+        for tst in age:
+            for key in dkeys_ssd:
+                for n in range(5):
+                    plt.figure()
+                    plt.plot(tst.ssd['t'], tst.ssd[key][n])
+                    plt.xlabel('Time [s]')
+                    plt.ylabel(key + '^(' + str(n)+')')
+                    plt.title(tst.name + key + str(n))
+                    plt.savefig('./figs/'+tst.name +'_ssd_'+ key + str(n) + '.png')
+                    plt.close()
+            for key in dkeys_iod:
+                for n in range(5):
+                    plt.figure()
+                    plt.plot(tst.iod['t'], tst.iod[key][n])
+                    plt.xlabel('Time [s]')
+                    plt.ylabel(key + '^(' + str(n)+')')
+                    plt.title(tst.name + key + str(n))
+                    plt.savefig('./figs/'+tst.name + key +'_iod_'+ str(n) + '.png')
+                    plt.close()
+
+    for age in truck_data:
+        for trk in age:
+            for key in dkeys_iod:
+                for n in range(5):
+                    plt.figure()
+                    plt.plot(trk.iod['t'], trk.iod[key][n])
+                    plt.xlabel('Time [s]')
+                    plt.ylabel(key + '^(' + str(n)+')')
+                    plt.title(trk.name + key + str(n))
+                    plt.savefig('./figs/'+trk.name + key +'_iod_'+ str(n) + '.png')
+                    plt.close()

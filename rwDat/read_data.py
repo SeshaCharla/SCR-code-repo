@@ -29,7 +29,8 @@ test_dict = {"aged_cftp": "g580040_Aged_cFTP.csv",
              "dg_cftp": "g577670_DG_cFTP.csv",
              "dg_hftp": "g577671_DG_hFTP.csv",
              "dg_rmc": "g577673_DG_RMC.csv"}
-gsec2kgmin_gain = 1 / 16.6667  # Conversion factor from g/sec to kg/min
+kgmin2gsec_gain = 16.6667  # Conversion factor from kg/min to g/sec
+gsec2kgmin_gain = 1 / kgmin2gsec_gain  # Conversion factor from g/sec to kg/min
 
 
 # Manipulating functions ------------------------------------------------------
@@ -104,6 +105,12 @@ class Data(object):
                                        self.raw['T'], self.raw['F']]).T)
         if self.name == "mes_18":  # Special case for mes_18
             iod_tab = np.copy(iod_tab[247:])
+        elif self.name in ["dg_cftp", "aged_cftp"]:
+            print("clearing " + self.name + " data")
+            iod_tab = np.copy(iod_tab[int(950/self.dt):])
+        elif self.name in ["dg_hftp", "aged_hftp"]:
+            print("clearing " + self.name + " data")
+            iod_tab = np.copy(iod_tab[int(500/self.dt):])
         iod_mat = iod_tab.T
         self.iod['t'] = np.array(iod_mat[0]).flatten()
         self.iod['y1'] = np.array(iod_mat[1]).flatten()
@@ -267,7 +274,7 @@ if __name__ == "__main__":
                 plt.xlabel('Time [s]')
                 plt.ylabel(key)
                 plt.title(test_data[i][j].name)
-                plt.savefig("figs/" + test_data[i][j].name + "_" + key + ".png")
+                plt.savefig("figs/" + test_data[i][j].name + "_ssd_" + key + ".png")
                 plt.close()
             for key in ['u1', 'u2', 'T', 'F', 'y1']:
                 plt.figure()
@@ -277,7 +284,7 @@ if __name__ == "__main__":
                 plt.xlabel('Time [s]')
                 plt.ylabel(key)
                 plt.title(test_data[i][j].name)
-                plt.savefig("figs/" + test_data[i][j].name + "_" + key + ".png")
+                plt.savefig("figs/" + test_data[i][j].name + "_iod_" + key + ".png")
                 plt.close()
 
     for i in range(2):
@@ -290,7 +297,7 @@ if __name__ == "__main__":
                 plt.xlabel('Time [s]')
                 plt.ylabel(key)
                 plt.title(truck_data[i][j].name)
-                plt.savefig("figs/" + truck_data[i][j].name + "_" + key + ".png")
+                plt.savefig("figs/" + truck_data[i][j].name + "_iod_" + key + ".png")
                 plt.close()
 
     # Showing datat discontinuities --------------------------------------------
