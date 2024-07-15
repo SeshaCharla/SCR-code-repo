@@ -92,7 +92,7 @@ class Data(object):
         self.ssd['x2'] = np.array(ssd_mat[2]).flatten()
         self.ssd['u1'] = np.array(ssd_mat[3]).flatten()
         self.ssd['u2'] = np.array(ssd_mat[4]).flatten()
-        self.ssd['T'] = np.array(ssd_mat[5]).flatten()
+        self.ssd['T'] = np.array(ssd_mat[5]).flatten() + 273.15     # Kelvin
         self.ssd['F'] = np.array(ssd_mat[6]).flatten()
         # Find the time discontinuities in SSD Data
         self.ssd['t_skips'] = find_discontinuities(self.ssd['t'], self.dt)
@@ -116,7 +116,7 @@ class Data(object):
         self.iod['y1'] = np.array(iod_mat[1]).flatten()
         self.iod['u1'] = np.array(iod_mat[2]).flatten()
         self.iod['u2'] = np.array(iod_mat[3]).flatten()
-        self.iod['T'] = np.array(iod_mat[4]).flatten()
+        self.iod['T'] = np.array(iod_mat[4]).flatten() + 273.15     # Kelvin
         self.iod['F'] = np.array(iod_mat[5]).flatten()
         # Find the time discontinuities in IOD Data
         self.iod['t_skips'] = find_discontinuities(self.iod['t'], self.dt)
@@ -187,8 +187,11 @@ class Data(object):
         """Normalize the ssd and iod datas"""
         if not self.normalized:
             if self.ssd != None:
+                self.ssd['fv'] = ((self.ssd['F'] * self.ssd['T']) - (nom['F'] * nom['T']))/(nom['F'] * nom['T'])
                 for key in ['x1', 'x2', 'u1', 'u2', 'T', 'F']:
                     self.ssd[key] = (self.ssd[key] - nom[key]) / nom[key]
+            # Normalize the iod Data
+            self.iod['fv'] = ((self.iod['F'] * self.iod['T']) - (nom['F'] * nom['T']))/(nom['F'] * nom['T'])
             for key in ['y1', 'u1', 'u2', 'T', 'F']:
                 self.iod[key] = (self.iod[key] - nom[key]) / nom[key]
             self.normalized = True
@@ -259,14 +262,14 @@ if __name__ == "__main__":
     import matplotlib.pyplot as plt
 
     # Actually load the entire Data set ----------------------------------------
-    normalization = False
+    normalization = True
     test_data = load_test_data_set(normalize=normalization)
     truck_data = load_truck_data_set(normalize=normalization)
 
     # Plotting all the Data sets
     for i in range(2):
         for j in range(3):
-            for key in ['u1', 'u2', 'T', 'F', 'x1', 'x2']:
+            for key in ['u1', 'u2', 'T', 'F', 'x1', 'x2', 'fv']:
                 plt.figure()
                 plt.plot(test_data[i][j].ssd['t'], test_data[i][j].ssd[key], label=test_data[i][j].name + " " + key)
                 plt.grid()
@@ -276,7 +279,7 @@ if __name__ == "__main__":
                 plt.title(test_data[i][j].name)
                 plt.savefig("figs/" + test_data[i][j].name + "_ssd_" + key + ".png")
                 plt.close()
-            for key in ['u1', 'u2', 'T', 'F', 'y1']:
+            for key in ['u1', 'u2', 'T', 'F', 'y1', 'fv']:
                 plt.figure()
                 plt.plot(test_data[i][j].iod['t'], test_data[i][j].iod[key], label=test_data[i][j].name + " " + key)
                 plt.grid()
@@ -289,9 +292,9 @@ if __name__ == "__main__":
 
     for i in range(2):
         for j in range(4):
-            for key in ['u1', 'u2', 'T', 'F', 'y1']:
+            for key in ['u1', 'u2', 'T', 'F', 'y1', 'fv']:
                 plt.figure()
-                plt.plot(truck_data[i][j].raw['t'], truck_data[i][j].raw[key], label=truck_data[i][j].name + " " + key)
+                plt.plot(truck_data[i][j].iod['t'], truck_data[i][j].iod[key], label=truck_data[i][j].name + " " + key)
                 plt.grid()
                 plt.legend()
                 plt.xlabel('Time [s]')
