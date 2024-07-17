@@ -21,9 +21,9 @@ def sliced_derivatives(rrd:dict, nd:int,
     tsk = rrd['t_skips']
     N = len(rrd['t'])
     if len(rrd.keys()) == 7: # If data is IOD
-        keys = ['y1', 'u1', 'u2', 'T', 'F']
+        keys = ['y1', 'u1', 'u2', 'T', 'F', 'fv']
     elif len(rrd.keys()) == 8: # If data is SSD
-        keys = ['x1', 'x2', 'u1', 'u2', 'T', 'F']
+        keys = ['x1', 'x2', 'u1', 'u2', 'T', 'F', 'fv']
     dkeys = ['d' + key for key in keys]
     for key in dkeys:  # Creating zero matrices for the derivatives
         rrd[key] = np.zeros([nd+1, N])
@@ -80,7 +80,8 @@ class IdData(rd.Data):
         if not (self.ssd is None):
             ssd_tab = np.matrix([self.ssd['t'], self.ssd['x1'], self.ssd['x2'],
                                  self.ssd['u1'], self.ssd['u2'],
-                                 self.ssd['F'], self.ssd['T']]).T
+                                 self.ssd['T'], self.ssd['F'],
+                                 self.ssd['fv']]).T
             # Remove the data which is not continuous to the window length
             ssd_tab, self.ssd['t_skips'] = delSmallWindows(ssd_tab, self.ssd['t_skips'], self.window_len)
             ssd_mat = ssd_tab.T
@@ -90,12 +91,12 @@ class IdData(rd.Data):
             self.ssd['x2'] = np.array(ssd_mat[2]).flatten()
             self.ssd['u1'] = np.array(ssd_mat[3]).flatten()
             self.ssd['u2'] = np.array(ssd_mat[4]).flatten()
-            self.ssd['F'] = np.array(ssd_mat[5]).flatten()
-            self.ssd['T'] = np.array(ssd_mat[6]).flatten()
+            self.ssd['T'] = np.array(ssd_mat[5]).flatten()
+            self.ssd['F'] = np.array(ssd_mat[6]).flatten()
         # IOD data
         iod_tab = np.matrix([self.iod['t'], self.iod['y1'],
                              self.iod['u1'], self.iod['u2'],
-                             self.iod['F'], self.iod['T']]).T
+                             self.iod['T'], self.iod['F']]).T
         # Remove the data which is not continuous to the window length
         iod_tab, self.iod['t_skips'] = delSmallWindows(iod_tab, self.iod['t_skips'], self.window_len)
         iod_mat = iod_tab.T
@@ -104,8 +105,8 @@ class IdData(rd.Data):
         self.iod['y1'] = np.array(iod_mat[1]).flatten()
         self.iod['u1'] = np.array(iod_mat[2]).flatten()
         self.iod['u2'] = np.array(iod_mat[3]).flatten()
-        self.iod['F'] = np.array(iod_mat[4]).flatten()
-        self.iod['T'] = np.array(iod_mat[5]).flatten()
+        self.iod['T'] = np.array(iod_mat[4]).flatten()
+        self.iod['F'] = np.array(iod_mat[5]).flatten()
 
     def gen_sliced_derivatives(self):
         """ Generate the sliced derivative matrices """
@@ -145,8 +146,8 @@ if __name__ == "__main__":
     truck_data = load_truck_iddata()
 
     # Plotting the the derivatives
-    dkeys_ssd = ['dx1', 'dx2', 'du1', 'du2', 'dF', 'dT']
-    dkeys_iod = ['dy1', 'du1', 'du2', 'dF', 'dT']
+    dkeys_ssd = ['dx1', 'dx2', 'du1', 'du2', 'dF', 'dT', 'dfv']
+    dkeys_iod = ['dy1', 'du1', 'du2', 'dF', 'dT', 'dfv']
     for age in test_data:
         for tst in age:
             for key in dkeys_ssd:
